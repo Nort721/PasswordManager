@@ -8,8 +8,8 @@ using namespace std;
 
 std::string SendSocketMessage(std::string msg)
 {
-	string ipAddress = "10.0.0.27";			// IP Address of the server
-	int port = 8000;						// Listening port # on the server
+	string ipAddress = "localhost";
+	int port = 8000;		
 
 	// Initialize WinSock
 	WSAData data;
