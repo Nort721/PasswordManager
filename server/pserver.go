@@ -2,12 +2,15 @@ package main
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
-	"crypto/sha1"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -42,8 +45,14 @@ func Init() {
 	}
 }
 
+// the hashing that server applies to safely store the key in its database
+func hashAuthKey(plainKey string) string {
+	return plainKey
+}
+
 func onPacketReceive(msg string, connection net.Conn) {
 
+	// will be saved in file in the future (maybe database at some point if I feel like it)
 	var authKeySaved string = "norttest"
 
 	// decrypt msg here
@@ -55,7 +64,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 
 	if action == "vaultRequest" {
 
-		if authKey == authKeySaved {
+		if hashAuthKey(authKey) == authKeySaved {
 
 			// send vault to client
 			fmt.Println("sending vault to client")
@@ -69,68 +78,43 @@ func onPacketReceive(msg string, connection net.Conn) {
 	}
 }
 
-/* hashing system */
-// interface example --->
-type Generator interface {
-	Hash(text string) string
+/* encryption code */
+func Encrypt(str string, passphrase string) []byte {
+	var data []byte = []byte(str)
+	block, _ := aes.NewCipher([]byte(GenerateMD5(passphrase)))
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		panic(err.Error())
+	}
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	return ciphertext
 }
 
-// this will not accept the argument if the func is not implemented
-func Run_Hash(gen Generator, text string) string {
-	return gen.Hash(text)
+func Decrypt(str string, passphrase string) string {
+	var data []byte = []byte(str)
+	key := []byte(GenerateMD5(passphrase))
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(plaintext)
 }
 
-type HashSha1 struct{}
-
-func (gen HashSha1) Hash(text string) string {
-	hash := sha1.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
-
-type HashSha256 struct{}
-
-func (gen HashSha256) Hash(text string) string {
-	hasher := sha256.New()
-
-	hasher.Write([]byte(text))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-type HashSha384 struct{}
-
-func (gen HashSha384) Hash(text string) string {
-	hasher := sha512.New384()
-
-	hasher.Write([]byte(text))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-type HashSha512 struct{}
-
-func (gen HashSha512) Hash(text string) string {
-	hasher := sha512.New()
-
-	hasher.Write([]byte(text))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-type HashMd5 struct{}
-
-func (gen HashMd5) Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
-
-// generates the sha1 hash of a given string
-func GenerateSha1(text string) string {
-	hash := sha1.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
-
-// generates the sha256 hash of a given string
+/* hashing code */
 func GenerateSha256(text string) string {
 	hasher := sha256.New()
 
@@ -139,7 +123,6 @@ func GenerateSha256(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// generates the sha256 hash of a given string
 func GenerateSha512(text string) string {
 	hasher := sha512.New()
 
@@ -148,7 +131,6 @@ func GenerateSha512(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// generates the md5 hash of a given string
 func GenerateMD5(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])

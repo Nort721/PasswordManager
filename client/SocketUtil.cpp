@@ -1,4 +1,4 @@
-#include "SocketUtil.h"
+#include "SocketUtil.hh"
 #include <iostream>
 #include <string>
 #include <WS2tcpip.h>
@@ -9,7 +9,7 @@ using namespace std;
 std::string SendSocketMessage(std::string msg)
 {
 	string ipAddress = "localhost";
-	int port = 8000;		
+	int port = 8000;
 
 	// Initialize WinSock
 	WSAData data;

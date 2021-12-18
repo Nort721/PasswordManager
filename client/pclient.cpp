@@ -5,12 +5,14 @@
 #include <sstream>
 #include <memory>
 #include <winsock2.h>
-#include "SocketUtil.h"
+#include "SocketUtil.hh"
 
 extern bool running = true;
 extern const std::string system_prefix = "system >> ";
 
-extern std::shared_ptr<std::vector<std::string>> vaultPtr = std::shared_ptr<std::vector<std::string>>();
+static std::vector<std::string> vault;
+
+//extern std::shared_ptr<std::vector<std::string>> vaultPtr = std::shared_ptr<std::vector<std::string>>();
 
 class command {
 public:
@@ -22,7 +24,7 @@ class helpCommand : public command {
 public:
     helpCommand() {}
     void onCommand(std::vector<std::string> args) override {
-        std::cout << "====================\n - exit\n====================" << std::endl;
+        std::cout << "====================\n - exit\n - help\n - printVault\n====================" << std::endl;
     }
 };
 
@@ -39,12 +41,12 @@ class printVaultCommand : public command {
 public:
     printVaultCommand() {}
     void onCommand(std::vector<std::string> args) override {
-        if (!vaultPtr) {
+        if (vault.empty()) {
             std::cout << "vault is empty" << std::endl;
             return;
         }
-        for (int i = 1; i < vaultPtr->size(); i++) {
-            std::cout << "pass[" << i << "]: " << args[i] << std::endl;
+        for (int i = 0; i < vault.size(); i++) {
+            std::cout << "acc[" << i+1 << "]: " << vault[i] << std::endl;
         }
     }
 };
@@ -78,7 +80,7 @@ void formatVault(std::string vaultStr) {
 
     for (size_t i = 0; i < vaultStr.length(); i++) {
         if (vaultStr[i] == '|') {
-            vaultPtr->push_back(word);
+            vault.push_back(word);
             word = "";
         }
         else
@@ -99,8 +101,8 @@ bool sendRequestToServer(std::string username, std::string password) {
     bool authSuccessful = responseFromServer != "wrong login credentials";
 
     // if authentication was successful, format our vault in memory
-    //if (authSuccessful)
-    //    formatVault(responseFromServer);
+    if (authSuccessful)
+        formatVault(responseFromServer);
 
     return authSuccessful;
 }
@@ -126,11 +128,11 @@ void init() {
         getline(std::cin, password);
 
         if (sendRequestToServer(username, password)) {
-            std::cout << "Access granted!, vault received" << std::endl;
+            std::cout << system_prefix << "Access granted!, vault received" << std::endl;
             break;
         }
         else {
-            std::cout << "incorrect login credentials, please try again" << std::endl;
+            std::cout << system_prefix << "incorrect login credentials, please try again" << std::endl;
         }
     }
 
@@ -172,10 +174,6 @@ void init() {
             }
         }
     }
-
-}
-
-void hashPassClientSide(std::string pass) {
 
 }
 
