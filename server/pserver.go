@@ -1,25 +1,14 @@
-package main
+package server
 
 import (
 	"bufio"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/md5"
-	"crypto/rand"
-	"crypto/sha256"
-	"crypto/sha512"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 )
 
-func main() {
+func Start() {
 	Init()
 }
 
@@ -46,17 +35,6 @@ func Init() {
 
 		onPacketReceive(message, socket)
 	}
-}
-
-// hashing and salting to safely store as the vault auth key
-func hashAuthKey(plainKey string) string {
-	const static_salt_back = "fdjgiernorwssdklsvmlmawknqhfudsuf"
-	const static_salt_front = "bjoikpdfosivhuywejraerfdshytikuyhfdgf"
-	hashedKey := plainKey
-	for i := 0; i < 300; i++ {
-		hashedKey = GenerateSha512(static_salt_back + hashedKey + static_salt_front)
-	}
-	return hashedKey
 }
 
 func onPacketReceive(msg string, connection net.Conn) {
@@ -88,7 +66,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 		if action == "vaultRequest" {
 
 			// can't return a vault that doesn't exist
-			if !exists(authKeyHash) {
+			if !Exists(authKeyHash) {
 				fmt.Println("vault " + authKeyHash + " not found")
 				connection.Write([]byte("vault not found"))
 				return
@@ -110,7 +88,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 		if action == "createVault" {
 
 			/* If there is already a vault using these credentials */
-			if exists(authKey) {
+			if Exists(authKey) {
 				connection.Write([]byte("invalid auth key, please type different credentials"))
 				return
 			}
@@ -123,13 +101,13 @@ func onPacketReceive(msg string, connection net.Conn) {
 		} else if action == "updateVault" {
 
 			// can't update a vault that doesn't exist
-			if !exists(authKeyHash) {
+			if !Exists(authKeyHash) {
 				connection.Write([]byte("vault not found"))
 				return
 			}
 
 			// delete old vault
-			deleteFile(authKeyHash)
+			DeleteFile(authKeyHash)
 
 			// create new vault
 			WriteFile(authKeyHash, data)
@@ -141,141 +119,13 @@ func onPacketReceive(msg string, connection net.Conn) {
 	}
 }
 
-/* encryption code */
-func Encrypt(str string, passphrase string) []byte {
-	var data []byte = []byte(str)
-	block, _ := aes.NewCipher([]byte(GenerateMD5(passphrase)))
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		panic(err.Error())
+// hashing and salting to safely store as the vault auth key
+func hashAuthKey(plainKey string) string {
+	const static_salt_back = "fdjgiernorwssdklsvmlmawknqhfudsuf"
+	const static_salt_front = "bjoikpdfosivhuywejraerfdshytikuyhfdgf"
+	hashedKey := plainKey
+	for i := 0; i < 300; i++ {
+		hashedKey = GenerateSha512(static_salt_back + hashedKey + static_salt_front)
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		panic(err.Error())
-	}
-	ciphertext := gcm.Seal(nonce, nonce, data, nil)
-	return ciphertext
-}
-
-func Decrypt(str string, passphrase string) string {
-	var data []byte = []byte(str)
-	key := []byte(GenerateMD5(passphrase))
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err.Error())
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		panic(err.Error())
-	}
-	nonceSize := gcm.NonceSize()
-	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		panic(err.Error())
-	}
-	return string(plaintext)
-}
-
-/* hashing code */
-func GenerateSha256(text string) string {
-	hasher := sha256.New()
-
-	hasher.Write([]byte(text))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func GenerateSha512(text string) string {
-	hasher := sha512.New()
-
-	hasher.Write([]byte(text))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func GenerateMD5(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
-
-/* Flat file database */
-// loads the text file thats in the given path
-// and reads all the text in it, returns
-// a string slice with all the text from the file
-func ScanFile(path string) string {
-
-	// support for unix systems
-	// unix systems paste file paths with apostrophe
-	if strings.Contains(path, "'") {
-		path = strings.Trim(path, "'")
-	}
-
-	// open the file
-	f, err := os.Open(path)
-
-	// error handling
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-
-	var lines []string
-
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-
-	// error handling
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return lines[0]
-}
-
-/* This checks if the file exists */
-func exists(path string) bool {
-	// support for unix systems
-	// unix systems paste file paths with apostrophe
-	if strings.Contains(path, "'") {
-		path = strings.Trim(path, "'")
-	}
-
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-
-	return true
-}
-
-func WriteFile(name string, text string) {
-	f, err := os.Create(name + ".txt")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	// writing it all as one line as this is how the encrypted data is saved
-	_, err2 := f.WriteString(text)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-}
-
-func deleteFile(path string) {
-	var err = os.Remove(path)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	fmt.Println("File Deleted")
+	return hashedKey
 }
