@@ -1,3 +1,3 @@
-module qserver.go
+module PasswordManager
 
 go 1.17

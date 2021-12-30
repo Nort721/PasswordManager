@@ -42,10 +42,10 @@ func onPacketReceive(msg string, connection net.Conn) {
 	// obviusly use SSL in the future, too lazy to set it up rn
 	// we are using the md5 hash of our keypass since it always has to
 	// be 32 bits
-	communication_encryption_key := GenerateMD5("mysupersecretkeypass")
+	//communication_encryption_key := GenerateMD5("mysupersecretkeypass")
 
 	// decrypt msg here
-	msg = Decrypt(msg, communication_encryption_key)
+	//msg = Decrypt(msg, communication_encryption_key)
 
 	args := strings.Split(msg, "|")
 
@@ -72,7 +72,9 @@ func onPacketReceive(msg string, connection net.Conn) {
 				return
 			}
 
-			// read vauilt from database
+			fmt.Println("vault found!")
+
+			// read vault from database
 			vault := ScanFile(authKeyHash)
 
 			// send vault to client
@@ -88,7 +90,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 		if action == "createVault" {
 
 			/* If there is already a vault using these credentials */
-			if Exists(authKey) {
+			if Exists(authKeyHash) {
 				connection.Write([]byte("invalid auth key, please type different credentials"))
 				return
 			}

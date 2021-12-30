@@ -1,4 +1,4 @@
-#include "SocketUtil.hh"
+#include "NetworkUtil.hpp"
 #include <iostream>
 #include <string>
 #include <WS2tcpip.h>
@@ -8,7 +8,7 @@ using namespace std;
 
 std::string SendSocketMessage(std::string msg)
 {
-	string ipAddress = "localhost";
+	string ipAddress = "10.0.0.17";
 	int port = 8000;
 
 	// Initialize WinSock
@@ -17,7 +17,7 @@ std::string SendSocketMessage(std::string msg)
 	int wsResult = WSAStartup(ver, &data);
 	if (wsResult != 0)
 	{
-		cerr << "Can't start Winsock, Err #" << wsResult << endl;
+		cerr << "Can't start Winsock, Err #" << wsResult << "\n";
 		return "-999";
 	}
 
@@ -25,12 +25,12 @@ std::string SendSocketMessage(std::string msg)
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET)
 	{
-		cerr << "Can't create socket, Err #" << WSAGetLastError() << endl;
+		cerr << "Can't create socket, Err #" << WSAGetLastError() << "\n";
 		WSACleanup();
 		return "-999";
 	}
 
-	//cout << "socket created!" << endl;
+	//cout << "socket created!" << "\n";
 
 	// Fill in a hint structure
 	sockaddr_in hint;
@@ -42,22 +42,22 @@ std::string SendSocketMessage(std::string msg)
 	int connResult = connect(sock, (sockaddr*)&hint, sizeof(hint));
 	if (connResult == SOCKET_ERROR)
 	{
-		cerr << "Can't connect to server, Err #" << WSAGetLastError() << endl;
+		cerr << "Can't connect to server, Err #" << WSAGetLastError() << "\n";
 		closesocket(sock);
 		WSACleanup();
 		return "-999";
 	}
 
-	//cout << "connected to server!" << endl;
+	//cout << "connected to server!" << "\n";
 
 	// Do-while loop to send and receive data
 	char buf[4096];
 
 	// Send the text
-	int sendResult = send(sock, msg.c_str(), msg.size() + 1, 0);
+	int sendResult = send(sock, msg.c_str(), msg.size(), 0);
 	if (sendResult == SOCKET_ERROR)
 	{
-		cout << "send error" << endl;
+		cout << "send error" << "\n";
 		return "-999";
 	}
 
@@ -80,7 +80,7 @@ std::string SendSocketMessage(std::string msg)
 		iResult = recv(sock, buf, 4096, 0);
 		if (iResult > 0)
 		{
-			//cout << string(buf, 0, iResult) << endl;
+			//cout << string(buf, 0, iResult) << "\n";
 			return string(buf, 0, iResult);
 		}
 		else if (iResult == 0)
@@ -95,4 +95,16 @@ std::string SendSocketMessage(std::string msg)
 	WSACleanup();
 
 	return "-999";
+}
+
+std::string SendVaultRequest(std::string authkey) {
+	return SendSocketMessage("vaultRequest|" + authkey);
+}
+
+std::string SendVaultUpdateRequest(std::string authkey, std::string newdata) {
+	return SendSocketMessage("updateVault|" + authkey + "|" + newdata);
+}
+
+std::string SendCreateVaultRequest(std::string authkey, std::string data) {
+	return SendSocketMessage("createVault|" + authkey + "|" + data);
 }

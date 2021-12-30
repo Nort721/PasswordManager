@@ -21,7 +21,7 @@ func ScanFile(path string) string {
 	}
 
 	// open the file
-	f, err := os.Open(path)
+	f, err := os.Open(path + ".txt")
 
 	// error handling
 	if err != nil {
@@ -36,6 +36,11 @@ func ScanFile(path string) string {
 
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
+	}
+
+	// empty vault
+	if len(lines) == 0 {
+		return "vault is empty"
 	}
 
 	// error handling
@@ -54,7 +59,7 @@ func Exists(path string) bool {
 		path = strings.Trim(path, "'")
 	}
 
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(path + ".txt"); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
 
@@ -79,7 +84,7 @@ func WriteFile(name string, text string) {
 }
 
 func DeleteFile(path string) {
-	var err = os.Remove(path)
+	var err = os.Remove(path + ".txt")
 
 	if err != nil {
 		fmt.Println(err.Error())
