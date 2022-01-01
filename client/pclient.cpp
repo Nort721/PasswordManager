@@ -5,11 +5,14 @@
 #include <sstream>
 #include <memory>
 #include <winsock2.h>
+#include "CryptoUtil.hpp"
 #include "NetworkUtil.hpp"
 
 extern bool running = true;
 extern const std::string system_prefix = "system >> ";
 extern std::string authKeyHash = "";
+
+extern std::string username = "", password = "";
 
 static std::vector<std::string> vault;
 
@@ -46,7 +49,7 @@ public:
             std::cout << system_prefix + "incorrect args" << "\n";
             return;
         }
-        std::string response = SendCreateVaultRequest(authKeyHash, "");
+        std::string response = SendCreateVaultRequest(authKeyHash, "", GenerateVaultKey(username, password));
         std::cout << response << "\n";
     }
 };
@@ -71,7 +74,7 @@ public:
             std::cout << system_prefix + "incorrect args" << "\n";
             return;
         }
-        std::string response = SendVaultUpdateRequest(authKeyHash, deformatVault());
+        std::string response = SendVaultUpdateRequest(authKeyHash, deformatVault(), GenerateVaultKey(username, password));
 
         if (response == "-999")
         {
@@ -91,6 +94,10 @@ public:
             std::cout << system_prefix + "incorrect args" << "\n";
             return;
         }
+        if (args[1].find('/') != std::string::npos) {
+            std::cout << system_prefix + "illegal character in data, data can't contains '/'" << "\n";
+            return;
+        }
         vault.push_back(args[1]);
         std::cout << system_prefix + "data added to local-vault successfully, type 'updateVault' to update the vault on the server" << "\n";
     }
@@ -104,7 +111,7 @@ public:
             std::cout << system_prefix + "vault is empty" << "\n";
             return;
         }
-        for (int i = 0; i < vault.size(); i++) {
+        for (int i = 0; unsigned(i) < vault.size(); i++) {
             std::cout << "acc[" << i+1 << "]: " << vault[i] << "\n";
         }
     }
@@ -149,10 +156,7 @@ void formatVault(std::string vaultStr) {
     }
 }
 
-std::string hashAuthKey(std::string plainTextKey) {
-    // Hash the key 50 times
-    return plainTextKey;
-}
+
 
 void init() {
 
@@ -183,9 +187,6 @@ void init() {
     }
     std::cout << "" << "\n";
 
-    std::string username;
-    std::string password;
-
     while (true)
     {
         std::cout << "username: ";
@@ -193,7 +194,7 @@ void init() {
         std::cout << "password: ";
         getline(std::cin, password);
 
-        authKeyHash = hashAuthKey(username + password);
+        authKeyHash = HashAuthKey(username + password);
 
         if (startingAction == "login") {
             std::cout << system_prefix + "requesting vault from server . . ." << "\n";

@@ -2,12 +2,22 @@
 #include <iostream>
 #include <string>
 #include <WS2tcpip.h>
+#include "CryptoUtil.hpp"
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
 std::string SendSocketMessage(std::string msg)
 {
+	//cout << "sending message: " << msg << "\n";
+
+	// communication key
+	//char key[5] = { 'K', 'C', 'Q'};
+
+	//msg = XOR(msg, key);
+
+	//cout << "sending message encrypted:" << msg << ", size: " << msg.size() << "\n";
+
 	string ipAddress = "10.0.0.17";
 	int port = 8000;
 
@@ -101,10 +111,20 @@ std::string SendVaultRequest(std::string authkey) {
 	return SendSocketMessage("vaultRequest|" + authkey);
 }
 
-std::string SendVaultUpdateRequest(std::string authkey, std::string newdata) {
+std::string SendVaultUpdateRequest(std::string authkey, std::string newdata, string vaultKey) {
+	//char key[sizeof(vaultKey)];
+	//strcpy_s(key, vaultKey.c_str());
+	//newdata = XOR(newdata, key);
 	return SendSocketMessage("updateVault|" + authkey + "|" + newdata);
 }
 
-std::string SendCreateVaultRequest(std::string authkey, std::string data) {
+std::string SendCreateVaultRequest(std::string authkey, std::string data, string vaultKey) {
+	//char key[sizeof(vaultKey)];
+	//strcpy_s(key, vaultKey.c_str());
+
+	//// if we are creating an empty vault, no need to encrypt it
+	//if (data.size() > 0)
+	//	data = XOR(data, key);
+
 	return SendSocketMessage("createVault|" + authkey + "|" + data);
 }

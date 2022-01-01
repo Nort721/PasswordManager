@@ -31,14 +31,14 @@ func Init() {
 
 		message, _ := bufio.NewReader(socket).ReadString('\n')
 
-		fmt.Println("Message Received encrypted:" + string(message) + ", size: " + strconv.Itoa(len(string(message))))
+		//fmt.Println("Message Received encrypted:" + string(message) + ", size: " + strconv.Itoa(len(string(message))))
 
 		// decrypt message encryption
-		decryptedMsg := XOR(string(message), "KCQ")
+		//decryptedMsg := XOR(string(message), "KCQ")
 
-		fmt.Println("Message Received: ", decryptedMsg)
+		fmt.Println("Message Received: ", message)
 
-		onPacketReceive(decryptedMsg, socket)
+		onPacketReceive(message, socket)
 	}
 }
 
