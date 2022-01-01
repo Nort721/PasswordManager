@@ -66,3 +66,11 @@ func GenerateMD5(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])
 }
+
+func XOR(input, key string) (output string) {
+	kL := len(key)
+	for i := range input {
+		output += string(input[i] ^ key[i%kL])
+	}
+	return output
+}
