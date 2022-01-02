@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var system_prefix string = "server -> "
+
 func Start() {
 	Init()
 }
@@ -36,7 +38,7 @@ func Init() {
 		// decrypt message encryption
 		//decryptedMsg := XOR(string(message), "KCQ")
 
-		fmt.Println("Message Received: ", message)
+		fmt.Println(system_prefix+"Message Received: ", message)
 
 		onPacketReceive(message, socket)
 	}
@@ -64,7 +66,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 
 	authKeyHash := hashAuthKey(authKey)
 
-	fmt.Println("processing message . . .")
+	fmt.Println(system_prefix + "processing message . . .")
 
 	if len(args) == 2 {
 
@@ -72,20 +74,33 @@ func onPacketReceive(msg string, connection net.Conn) {
 
 			// can't return a vault that doesn't exist
 			if !Exists(authKeyHash) {
-				fmt.Println("vault " + authKeyHash + " not found")
+				fmt.Println(system_prefix + "vault " + authKeyHash + " not found")
 				connection.Write([]byte("vault not found"))
 				return
 			}
 
-			fmt.Println("vault found!")
+			//fmt.Println("vault found!")
 
 			// read vault from database
 			vault := ScanFile(authKeyHash)
 
 			// send vault to client
-			fmt.Println("sending vault to " + authKeyHash)
+			fmt.Println(system_prefix + "sending vault to " + authKeyHash)
 			connection.Write([]byte(vault))
 
+		} else if action == "deleteVault" {
+			// can't delete a vault that doesn't exist
+			if !Exists(authKeyHash) {
+				fmt.Println(system_prefix + "vault " + authKeyHash + " not found")
+				connection.Write([]byte("vault not found"))
+				return
+			}
+
+			DeleteFile(authKeyHash)
+
+			// send vault to client
+			fmt.Println(system_prefix + "deleting vault " + authKeyHash)
+			connection.Write([]byte("vault deleted"))
 		}
 
 	} else if len(args) == 3 {
@@ -96,14 +111,14 @@ func onPacketReceive(msg string, connection net.Conn) {
 
 			/* If there is already a vault using these credentials */
 			if Exists(authKeyHash) {
-				connection.Write([]byte("invalid auth key, please type different credentials"))
+				connection.Write([]byte("you already have a vault"))
 				return
 			}
 
 			// writing new data to database
 			WriteFile(authKeyHash, data)
 
-			fmt.Println("vault created for user " + authKeyHash)
+			fmt.Println(system_prefix + "vault created for user " + authKeyHash)
 			connection.Write([]byte("new vault created!"))
 		} else if action == "updateVault" {
 
@@ -119,7 +134,7 @@ func onPacketReceive(msg string, connection net.Conn) {
 			// create new vault
 			WriteFile(authKeyHash, data)
 
-			fmt.Println("vault updated for user " + authKeyHash)
+			fmt.Println(system_prefix + "vault updated for user " + authKeyHash)
 			connection.Write([]byte("vault updated!"))
 		}
 

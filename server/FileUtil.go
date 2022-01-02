@@ -91,5 +91,5 @@ func DeleteFile(path string) {
 		return
 	}
 
-	fmt.Println("File Deleted")
+	//fmt.Println("File Deleted")
 }
