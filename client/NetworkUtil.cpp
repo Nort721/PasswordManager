@@ -111,6 +111,10 @@ std::string SendVaultRequest(std::string authkey) {
 	return SendSocketMessage("vaultRequest|" + authkey);
 }
 
+std::string SendVaultDeleteRequest(std::string authkey) {
+	return SendSocketMessage("deleteVault|" + authkey);
+}
+
 std::string SendVaultUpdateRequest(std::string authkey, std::string newdata, string vaultKey) {
 	//char key[sizeof(vaultKey)];
 	//strcpy_s(key, vaultKey.c_str());
@@ -118,7 +122,7 @@ std::string SendVaultUpdateRequest(std::string authkey, std::string newdata, str
 	return SendSocketMessage("updateVault|" + authkey + "|" + newdata);
 }
 
-std::string SendCreateVaultRequest(std::string authkey, std::string data, string vaultKey) {
+std::string SendVaultCreateRequest(std::string authkey, std::string data, string vaultKey) {
 	//char key[sizeof(vaultKey)];
 	//strcpy_s(key, vaultKey.c_str());
 

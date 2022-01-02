@@ -1,4 +1,4 @@
-#include "iostream"
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -7,6 +7,7 @@
 #include <winsock2.h>
 #include "CryptoUtil.hpp"
 #include "NetworkUtil.hpp"
+#include "StringUtil.hpp"
 
 extern bool running = true;
 extern const std::string system_prefix = "system >> ";
@@ -14,7 +15,7 @@ extern std::string authKeyHash = "";
 
 extern std::string username = "", password = "";
 
-static std::vector<std::string> vault;
+static std::vector<std::string> *vault = new std::vector<std::string>();
 
 //extern std::shared_ptr<std::vector<std::string>> vaultPtr = std::shared_ptr<std::vector<std::string>>();
 
@@ -49,22 +50,14 @@ public:
             std::cout << system_prefix + "incorrect args" << "\n";
             return;
         }
-        std::string response = SendCreateVaultRequest(authKeyHash, "", GenerateVaultKey(username, password));
-        std::cout << response << "\n";
+        std::string response = SendVaultCreateRequest(authKeyHash, "", GenerateVaultKey(username, password));
+
+        if (response == "you already have a vault") {
+            response += ", type 'updateVault' to update your vault";
+        }
+        std::cout << system_prefix + response << "\n";
     }
 };
-
-std::string deformatVault() {
-    std::string vault_string = "";
-
-    for (size_t i = 0; i < vault.size(); i++) {
-        if (i != 0)
-            vault_string += "/";
-        vault_string += vault[i];
-    }
-
-    return vault_string;
-}
 
 class updateVaultCommand : public command {
 public:
@@ -74,7 +67,46 @@ public:
             std::cout << system_prefix + "incorrect args" << "\n";
             return;
         }
-        std::string response = SendVaultUpdateRequest(authKeyHash, deformatVault(), GenerateVaultKey(username, password));
+        std::string response = SendVaultUpdateRequest(authKeyHash, DeformatVault(vault), GenerateVaultKey(username, password));
+
+        if (response == "-999")
+        {
+            std::cout << system_prefix + "task failed, lost connection to server" << "\n";
+            return;
+        }
+
+        std::cout << response << "\n";
+    }
+};
+
+class deleteVaultCommand : public command {
+public:
+    deleteVaultCommand() {}
+    void onCommand(std::vector<std::string> args) override {
+
+        std::cout << system_prefix + "this action will PERMANETLY delete your vault from the server, and there is no backup of it, are you sure you want to proceed?" << "\n";
+        std::cout << "Y/N" << "\n";
+        std::string input;
+        std::cout << ">> ";
+        std::cin >> input;
+
+        if (input == "N") {
+            std::cout << "action canceled." << "\n";
+            return;
+        }
+        else if (input == "Y") {
+            std::cout << system_prefix + "Are you sure you want to delete your vault and lose all the data in it forever" << "\n";
+            std::cout << system_prefix + "Yes/No'" << "\n";
+            std::cout << ">> ";
+            std::cin >> input;
+            // if they didn't type that they know what they are doing, cancel anyways
+            if (input != "Yes") {
+                std::cout << "action canceled." << "\n";
+                return;
+            }
+        }
+
+        std::string response = SendVaultDeleteRequest(authKeyHash);
 
         if (response == "-999")
         {
@@ -98,7 +130,7 @@ public:
             std::cout << system_prefix + "illegal character in data, data can't contains '/'" << "\n";
             return;
         }
-        vault.push_back(args[1]);
+        vault->push_back(args[1]);
         std::cout << system_prefix + "data added to local-vault successfully, type 'updateVault' to update the vault on the server" << "\n";
     }
 };
@@ -107,56 +139,15 @@ class printVaultCommand : public command {
 public:
     printVaultCommand() {}
     void onCommand(std::vector<std::string> args) override {
-        if (vault.empty()) {
+        if (vault->empty()) {
             std::cout << system_prefix + "vault is empty" << "\n";
             return;
         }
-        for (int i = 0; unsigned(i) < vault.size(); i++) {
-            std::cout << "acc[" << i+1 << "]: " << vault[i] << "\n";
+        for (int i = 0; unsigned(i) < vault->size(); i++) {
+            std::cout << "acc[" << i+1 << "]: " << (*vault)[i] << "\n";
         }
     }
 };
-
-std::vector<std::string> split(std::string args, char seperator) {
-    std::vector<std::string> vec;
-    std::string word;
-
-    args += " ";
-
-    for (size_t i = 0; i < args.length(); i++) {
-        if (args[i] == seperator) {
-            vec.push_back(word);
-            word = "";
-        }
-        else
-        {
-            word += args[i];
-        }
-    }
-
-    return vec;
-}
-
-void formatVault(std::string vaultStr) {
-    // first decrypt vault
-
-    std::string word;
-
-    vaultStr += "/";
-
-    for (size_t i = 0; i < vaultStr.length(); i++) {
-        if (vaultStr[i] == '/') {
-            vault.push_back(word);
-            word = "";
-        }
-        else
-        {
-            word += vaultStr[i];
-        }
-    }
-}
-
-
 
 void init() {
 
@@ -173,6 +164,7 @@ void init() {
     commands.insert(std::make_pair("help", new helpCommand()));
     commands.insert(std::make_pair("exit", new exitCommand()));
     commands.insert(std::make_pair("createVault", new createVaultCommand()));
+    commands.insert(std::make_pair("deleteVault", new deleteVaultCommand()));
     commands.insert(std::make_pair("updateVault", new updateVaultCommand()));
     commands.insert(std::make_pair("addData", new addDataCommand()));
     commands.insert(std::make_pair("printVault", new printVaultCommand()));
@@ -180,10 +172,13 @@ void init() {
     std::string startingAction = "";
 
     std::cout << "login/register?" << "\n";
-    while (startingAction != "login" && startingAction != "register")
+    while (true)
     {
         std::cout << ">> ";
         getline(std::cin, startingAction);
+        if (startingAction != "login" && startingAction != "register")
+            std::cout << system_prefix + "incorrect input, options are login/register" << "\n";
+        else break;
     }
     std::cout << "" << "\n";
 
@@ -210,7 +205,7 @@ void init() {
                 std::cout << system_prefix << "Vault received!, decrypting vault . . ." << "\n";
 
                 if (response != "vault is empty")
-                    formatVault(response);
+                    FormatVault(response, vault);
 
                 std::cout << system_prefix << "vault decrypted and formatted" << "\n";
                 break;
@@ -224,10 +219,11 @@ void init() {
                     std::cout << "type 'createVault' to create a new empty vault" << "\n";
                     break;
                 }
+                std::cout << "\n";
             }
         }
         else {
-            commands["createVault"]->onCommand(split("createVault", ' '));
+            commands["createVault"]->onCommand(Split("createVault", ' '));
             break;
         }
     }
@@ -257,11 +253,11 @@ void init() {
 
             // if the name is in the map keys, get and execute the command
             if (commands.count(commandName)) {
-                commands[commandName]->onCommand(split(input, ' '));
+                commands[commandName]->onCommand(Split(input, ' '));
             }
             else
             {
-                std::cout << system_prefix + "Unknown command. Type help for help." << "\n";
+                std::cout << system_prefix + "Unknown command. Type 'help' for help." << "\n";
             }
         }
     }
