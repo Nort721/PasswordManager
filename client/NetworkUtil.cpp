@@ -18,7 +18,7 @@ std::string SendSocketMessage(std::string msg)
 
 	//cout << "sending message encrypted:" << msg << ", size: " << msg.size() << "\n";
 
-	string ipAddress = "10.0.0.17";
+	string ipAddress = "localhost";
 	int port = 8000;
 
 	// Initialize WinSock

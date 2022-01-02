@@ -29,7 +29,7 @@ class helpCommand : public command {
 public:
     helpCommand() {}
     void onCommand(std::vector<std::string> args) override {
-        std::cout << "====================\n - exit\n - help\n - printVault\n - createVault\n - updateVault\n - addData\n====================" << "\n";
+        std::cout << "====================\n - exit\n - help\n - printVault\n - createVault\n - updateVault\n - deleteVault\n - addData\n====================" << "\n";
     }
 };
 
