@@ -15,7 +15,7 @@ extern std::string authKeyHash = "";
 
 extern std::string username = "", password = "";
 
-static std::vector<std::string> *vault = new std::vector<std::string>();
+static std::vector<std::string>* vault = new std::vector<std::string>();
 
 //extern std::shared_ptr<std::vector<std::string>> vaultPtr = std::shared_ptr<std::vector<std::string>>();
 
@@ -144,7 +144,7 @@ public:
             return;
         }
         for (int i = 0; unsigned(i) < vault->size(); i++) {
-            std::cout << "acc[" << i+1 << "]: " << (*vault)[i] << "\n";
+            std::cout << "acc[" << i + 1 << "]: " << (*vault)[i] << "\n";
         }
     }
 };
@@ -204,8 +204,12 @@ void init() {
             if (response != "vault not found") {
                 std::cout << system_prefix << "Vault received!, decrypting vault . . ." << "\n";
 
-                if (response != "vault is empty")
+                if (response != "vault is empty") {
+                    char vaultKeyArr[65];
+                    strcpy(vaultKeyArr, GenerateVaultKey(username, password).c_str());
+                    response = XOR(response, vaultKeyArr);
                     FormatVault(response, vault);
+                }
 
                 std::cout << system_prefix << "vault decrypted and formatted" << "\n";
                 break;

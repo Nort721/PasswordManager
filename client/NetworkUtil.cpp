@@ -115,20 +115,20 @@ std::string SendVaultDeleteRequest(std::string authkey) {
 	return SendSocketMessage("deleteVault|" + authkey);
 }
 
-std::string SendVaultUpdateRequest(std::string authkey, std::string newdata, string vaultKey) {
-	//char key[sizeof(vaultKey)];
-	//strcpy_s(key, vaultKey.c_str());
-	//newdata = XOR(newdata, key);
+std::string SendVaultUpdateRequest(std::string authkey, std::string newdata, std::string vaultKey) {
+	char vaultKeyArr[65];
+	strcpy(vaultKeyArr, vaultKey.c_str());
+	newdata = XOR(newdata, vaultKeyArr);
+	//std::cout << "updateVault|" + authkey + "|" + newdata << "\n";
 	return SendSocketMessage("updateVault|" + authkey + "|" + newdata);
 }
 
-std::string SendVaultCreateRequest(std::string authkey, std::string data, string vaultKey) {
-	//char key[sizeof(vaultKey)];
-	//strcpy_s(key, vaultKey.c_str());
-
-	//// if we are creating an empty vault, no need to encrypt it
-	//if (data.size() > 0)
-	//	data = XOR(data, key);
-
+std::string SendVaultCreateRequest(std::string authkey, std::string data, std::string vaultKey) {
+	char vaultKeyArr[65];
+	strcpy(vaultKeyArr, vaultKey.c_str());
+	// if we are creating an empty vault, no need to encrypt it
+	if (data.size() > 0)
+		data = XOR(data, vaultKeyArr);
+	//std::cout << "createVault|" + authkey + "|" + data << "\n";
 	return SendSocketMessage("createVault|" + authkey + "|" + data);
 }

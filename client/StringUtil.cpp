@@ -20,7 +20,7 @@ std::vector<std::string> Split(std::string args, char seperator) {
     return vec;
 }
 
-void FormatVault(std::string vaultStr, std::vector<std::string> *vault) {
+void FormatVault(std::string vaultStr, std::vector<std::string>* vault) {
     // first decrypt vault
 
     std::string word;
@@ -39,7 +39,7 @@ void FormatVault(std::string vaultStr, std::vector<std::string> *vault) {
     }
 }
 
-std::string DeformatVault(std::vector<std::string> *vault) {
+std::string DeformatVault(std::vector<std::string>* vault) {
     std::string vault_string = "";
 
     for (size_t i = 0; i < vault->size(); i++) {
